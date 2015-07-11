@@ -4,8 +4,10 @@ var app;
 
   var cachedMessages = [];
   var chatRooms = [];
+  var friends = {};
   var messageContainer;
   var timer;
+  var server = 'https://api.parse.com/1/classes/chatterbox';
 
   function escapeHtml(str) {
     var div = document.createElement('div');
@@ -23,24 +25,31 @@ var app;
         cachedMessages.push(data.createdAt);
       }
       if( data.roomname === $('#chat-room').val() ) {
-        frag.append(buildMessage(data.text));
+        frag.append(buildMessage(data));
       }
     });
 
     messageContainer.append(frag);
   }
 
-  function buildMessage(text) {
+  function buildMessage(data) {
     var div = $('<div />');
-    if(!text) {
+    var friendClass = '';
+    if(!data.text || !data.username) {
       return;
     }
-    div.append('<p>'+ escapeHtml(text) +'</p>');
+    var userName = escapeHtml(data.username).split(' ').join('');
+    if(friends[userName]) {
+      friendClass = 'friend';
+    }
+    div.append('<p class="user-name '+userName+' '+friendClass+'">User:<span>'+ escapeHtml(data.username) +'</span></p>');
+    div.append('<p>'+ escapeHtml(data.text) +'</p>');
     return div;
   }
 
   function switchRooms() {
     cachedMessages = [];
+    $('#new-chatroom').val(this.value);
     fetch();
   }
 
@@ -56,8 +65,24 @@ var app;
     send(message);
   }
 
+  function addFriend() {
+    var userName = $(this).find('span').text().split(' ').join('');
+
+    if(friends[userName]) {
+      friends[userName] = false;
+    } else {
+      friends[userName] = true;
+    }
+
+    $('.'+userName).each(function(i,el) {
+      $(el).toggleClass('friend',friends[userName]);
+    });
+  }
+
   function init(params) {
     messageContainer = params.container;
+
+    messageContainer.on('click','.user-name',addFriend);
 
     $('#send-message').on('click',messageParse);
     $('#chat-room').on('change',switchRooms);
@@ -68,7 +93,7 @@ var app;
   function send(message) {
     $.ajax({
       // This is the url you should use to communicate with the parse API server.
-      url: 'https://api.parse.com/1/classes/chatterbox',
+      url: server,
       type: 'POST',
       data: JSON.stringify(message),
       contentType: 'application/json',
@@ -86,7 +111,7 @@ var app;
 
   function fetch() {
     $.ajax({
-      url: 'https://api.parse.com/1/classes/chatterbox',
+      url: server,
       type: 'GET',
       data: {order: '-createdAt'},
       contentType: 'application/json',
@@ -130,7 +155,7 @@ var app;
       }
       cachedMessages.push(data.results[i].createdAt);
       if( data.results[i].roomname === $('#chat-room').val() ) {
-        frag.append(buildMessage(data.results[i].text));
+        frag.append(buildMessage(data.results[i]));
       }
     }
 
@@ -138,6 +163,7 @@ var app;
   };
 
   app = {
+    server: server,
     init: init,
     send: send,
     fetch: fetch,

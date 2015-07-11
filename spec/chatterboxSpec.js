@@ -15,7 +15,9 @@ describe('chatterbox', function() {
 
     before(function() {
       ajaxSpy = sinon.stub($, 'ajax');
-      app.init();
+      app.init({
+        container: $('#feed')
+      });
     });
 
     beforeEach(function() {
