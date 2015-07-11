@@ -8,7 +8,21 @@
   <body>
     <div id="main">
       <h1>chatterbox</h1>
-      <!-- Your HTML goes here! -->
+      <form action="#">
+        <select name="chat" id="chat-room">
+        </select>
+
+        <label for="user-name">User Name</label>
+        <input type="text" id="user-name">
+
+        <label for="message">Message</label>
+        <input type="text" id="message">
+        <button id="send-message">Send Message</button>
+
+        <label for="new-chatroom">New Chatroom</label>
+        <input type="text" id="new-chatroom" value="lobby">
+      </form>
+      <div id="feed"></div>
     </div>
     <!-- dependencies -->
     <script src="bower_components/jquery/jquery.min.js"></script>
@@ -20,7 +34,7 @@
     <script>
 
       app.init({
-        container: $('#main')
+        container: $('#feed')
       });
 
     </script>
