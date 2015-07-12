@@ -59,6 +59,10 @@ form input[type=text] {
     padding: 5px;
 }
 
+.spinner {
+  display: none;
+}
+
 .chat {
     padding: 5px;
     margin-bottom: 5px;
@@ -71,16 +75,6 @@ form input[type=text] {
 
 .chat:hover {
     background-color: #ddd;
-}
-
-.spinner {
-    float: right;
-    height: 46px;
-    margin-bottom: 5px;
-}
-
-.spinner img {
-    padding: 10px;
 }
 
 .friend {

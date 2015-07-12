@@ -1,72 +1,112 @@
 var app;
 
-(function() {
+$(function() {
 
+  var $messageContainer, timer;
   var cachedMessages = [];
   var chatRooms = [];
   var friends = {};
-  var messageContainer;
-  var timer;
+  var $spinner = $('.spinner');
+  var $messageForm = $('#message-form');
+  var $chatRoomSelector = $('#chat-room-select');
+  var $userName = $('#user-name');
+  var $newChatRoom = $('#new-chatroom');
+  var $message = $('#message');
+  var $sendMessage = $('#send-message');
   var server = 'https://api.parse.com/1/classes/chatterbox';
 
-  function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.appendChild(document.createTextNode(str));
-    return div.innerHTML;
-  };
+  function initFeed(messages) {
+    var frag = $(document.createDocumentFragment());
 
-  function initFeed(data) {
-    messageContainer.html('');
+    $messageContainer.html('');
 
-    frag = $(document.createDocumentFragment());
-
-    _.each(data.results, function(data) {
-      if(_.indexOf(cachedMessages, data.createdAt) == -1) {
-        cachedMessages.push(data.createdAt);
+    _.each(messages, function(message) {
+      if(_.indexOf(cachedMessages, message.createdAt) == -1) {
+        cachedMessages.push(message.createdAt);
       }
-      if( data.roomname === $('#chat-room').val() ) {
-        frag.append(buildMessage(data));
+      if( message.roomname === $chatRoomSelector.val() ) {
+        frag.append(buildMessage(message));
       }
     });
 
-    messageContainer.append(frag);
+    $messageContainer.append(frag);
   }
 
   function buildMessage(data) {
+    var userName;
     var div = $('<div />');
     var friendClass = '';
+
     if(!data.text || !data.username) {
       return;
     }
-    var userName = escapeHtml(data.username).split(' ').join('');
+
+    userName = _.escape(data.username).replace(/ +/g,'');
+
     if(friends[userName]) {
       friendClass = 'friend';
     }
-    div.append('<p class="user-name '+userName+' '+friendClass+'">User:<span>'+ escapeHtml(data.username) +'</span></p>');
-    div.append('<p>'+ escapeHtml(data.text) +'</p>');
+
+    div.append('<p class="user-name '+friendClass+'" data-username="'+userName+'">User:<span>'+userName+'</span></p>');
+    div.append('<p>'+ _.escape(data.text) +'</p>');
     return div;
+  }
+
+  function appendNewMessages(messages) {
+    var frag = $(document.createDocumentFragment());
+
+    for(var i = 0; i < messages.length; i++) {
+      if(_.indexOf(cachedMessages, messages[i].createdAt) > -1) {
+        break;
+      }
+      cachedMessages.push(messages[i].createdAt);
+      if( messages[i].roomname === $chatRoomSelector.val() ) {
+        frag.append(buildMessage(messages[i]));
+      }
+    }
+
+    $messageContainer.prepend(frag);
+  }
+
+  function buildChatRooms(messages) {
+    _.each(messages, function(message) {
+      var roomname = _.escape(message.roomname);
+      if( _.indexOf(chatRooms,roomname) === -1 ) {
+        chatRooms.push(roomname);
+        $chatRoomSelector.append('<option value="'+ roomname +'">'+roomname+'</option');
+      }
+    });
   }
 
   function switchRooms() {
     cachedMessages = [];
-    $('#new-chatroom').val(this.value);
+    $newChatRoom.val(this.value);
     fetch();
   }
 
   function messageParse() {
+
+    var userName = $userName.val();
+    var text = $message.val();
+    var roomName = $newChatRoom.val();
+
+    if( !userName || !text || !roomName) {
+      return;
+    }
+
     var message = {
-      username: $('#user-name').val(),
-      text: $('#message').val(),
-      roomname: $('#new-chatroom').val()
+      username: userName,
+      text: text,
+      roomname: roomName
     };
 
-    $('#message').val('');
+    $message.val('');
 
     send(message);
   }
 
   function addFriend() {
-    var userName = $(this).find('span').text().split(' ').join('');
+    var userName = $(this).data('username');
 
     if(friends[userName]) {
       friends[userName] = false;
@@ -74,25 +114,31 @@ var app;
       friends[userName] = true;
     }
 
-    $('.'+userName).each(function(i,el) {
+    $('.user-name[data-username="'+userName+'"]').each(function(i,el) {
       $(el).toggleClass('friend',friends[userName]);
     });
   }
 
   function init(params) {
-    messageContainer = params.container;
+    $messageContainer = params.container;
 
-    messageContainer.on('click','.user-name',addFriend);
+    $messageContainer.on('click','.user-name',addFriend);
 
-    $('#send-message').on('click',messageParse);
-    $('#chat-room').on('change',switchRooms);
+    $messageForm.on('submit',function(e) {
+      e.preventDefault();
+    });
+
+    $sendMessage.on('click',messageParse);
+    $chatRoomSelector.on('change',switchRooms);
 
     fetch();
   };
 
   function send(message) {
+
+    $spinner.show();
+
     $.ajax({
-      // This is the url you should use to communicate with the parse API server.
       url: server,
       type: 'POST',
       data: JSON.stringify(message),
@@ -103,7 +149,6 @@ var app;
         console.log('chatterbox: Message sent');
       },
       error: function (data) {
-        // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
         console.error('chatterbox: Failed to send message');
       }
     });
@@ -119,47 +164,27 @@ var app;
         clearInterval(timer);
         timer = setInterval(fetch,5000);
         displayMessages(data);
+        $spinner.fadeOut();
       },
       error: function (data) {
-        // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
         console.error('chatterbox: Failed to fetch message');
       }
     });
   };
 
   function displayMessages(data) {
-    var frag;
 
-    _.each(data.results, function(data) {
-      var roomname = data.roomname;
-      if( _.indexOf(chatRooms,roomname) === -1 ) {
-        chatRooms.push(roomname);
-        $('#chat-room').append('<option value="'+ roomname +'">'+roomname+'</option');
-      }
-    });
+    buildChatRooms(data.results);
 
     if(!cachedMessages.length) {
-      initFeed(data);
+      initFeed(data.results);
       return;
     }
 
-    if( JSON.stringify(data.results[0]) === JSON.stringify(cachedMessages[0]) ) {
-      return;
+    if( JSON.stringify(data.results[0]) !== JSON.stringify(cachedMessages[0]) ) {
+      appendNewMessages(data.results);
     }
 
-    frag = $(document.createDocumentFragment());
-
-    for(var i = 0; i < data.results.length; i++) {
-      if(_.indexOf(cachedMessages, data.results[i].createdAt) > -1) {
-        break;
-      }
-      cachedMessages.push(data.results[i].createdAt);
-      if( data.results[i].roomname === $('#chat-room').val() ) {
-        frag.append(buildMessage(data.results[i]));
-      }
-    }
-
-    messageContainer.prepend(frag);
   };
 
   app = {
@@ -170,4 +195,4 @@ var app;
     displayMessages: displayMessages
   };
 
-}());
+});

@@ -8,8 +8,8 @@
   <body>
     <div id="main">
       <h1>chatterbox</h1>
-      <form action="#">
-        <select name="chat" id="chat-room">
+      <form action="#" id="message-form">
+        <select name="chat" id="chat-room-select">
         </select>
 
         <label for="user-name">User Name</label>
@@ -21,6 +21,8 @@
 
         <label for="new-chatroom">Current Chatroom</label>
         <input type="text" id="new-chatroom" value="lobby">
+
+        <img class="spinner" src="images/spiffygif_46x46.gif" alt="">
       </form>
       <div id="feed"></div>
     </div>
@@ -33,9 +35,11 @@
     <script src="scripts/app.js"></script>
     <script>
 
+    $(function(){
       app.init({
         container: $('#feed')
       });
+    })
 
     </script>
   </body>
