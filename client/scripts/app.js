@@ -1,198 +1,155 @@
-var app;
+var $chatRoomSelect = $('#chat-room-select');
+var $newChatRoom = $('#new-chatroom');
+var $feed = $('#feed');
+var onscreenMessages = {};
 
-$(function() {
+var Message = Backbone.Model.extend({
+  url: 'https://api.parse.com/1/classes/chatterbox/',
+  defaults: {
+    username: '',
+    text: '',
+    roomname: 'lobby'
+  }
+});
 
-  var $messageContainer, timer;
-  var cachedMessages = [];
-  var chatRooms = [];
-  var friends = {};
-  var $spinner = $('.spinner');
-  var $messageForm = $('#message-form');
-  var $chatRoomSelector = $('#chat-room-select');
-  var $userName = $('#user-name');
-  var $newChatRoom = $('#new-chatroom');
-  var $message = $('#message');
-  var $sendMessage = $('#send-message');
-  var server = 'https://api.parse.com/1/classes/chatterbox';
+var Messages = Backbone.Collection.extend({
+  url: 'https://api.parse.com/1/classes/chatterbox/',
+  model: Message,
 
-  function initFeed(messages) {
-    var frag = $(document.createDocumentFragment());
+  loadMsgs: function() {
+    this.fetch({data: { order: '-createdAt' }});
+  },
 
-    $messageContainer.html('');
+  parse: function(response, options){
+    var results = [];
+    for( var i = response.results.length-1; i >= 0; i-- ){
+      results.push(response.results[i]);
+    }
+    return results;
+  }
 
-    _.each(messages, function(message) {
-      if(_.indexOf(cachedMessages, message.createdAt) == -1) {
-        cachedMessages.push(message.createdAt);
-      }
-      if( message.roomname === $chatRoomSelector.val() ) {
-        frag.append(buildMessage(message));
-      }
+});
+
+
+var FormView = Backbone.View.extend({
+
+  initialize: function(){
+    this.collection.on('sync', this.stopSpinner, this);
+    this.collection.on('sync', this.buildChatRooms, this);
+
+    this.chatRooms = [];
+    this.$text = this.$('#message');
+    this.$userName = this.$('#user-name');
+    this.$roomName = this.$('#new-chatroom');
+    this.$spinner = this.$('.spinner');
+    this.$chatRoomSelect = this.$('#chat-room-select');
+  },
+
+  events: {
+    'submit #message-form': 'handleSubmit',
+    'change #chat-room-select': 'switchRooms'
+  },
+
+  switchRooms: function(e) {
+    onscreenMessages = {};
+    $feed.html('');
+
+    $newChatRoom.val(e.target.value);
+
+    this.collection.loadMsgs();
+  },
+
+  handleSubmit: function(e) {
+    e.preventDefault();
+
+    this.startSpinner();
+
+    this.collection.create({
+      username: this.$userName.val(),
+      text: this.$text.val(),
+      roomname: this.$roomName.val()
     });
 
-    $messageContainer.append(frag);
-  }
+    this.$text.val('');
+  },
 
-  function buildMessage(data) {
-    var userName;
-    var div = $('<div />');
-    var friendClass = '';
+  buildChatRooms: function() {
 
-    if(!data.text || !data.username) {
-      return;
-    }
-
-    userName = _.escape(data.username).replace(/ +/g,'');
-
-    if(friends[userName]) {
-      friendClass = 'friend';
-    }
-
-    div.append('<p class="user-name '+friendClass+'" data-username="'+userName+'">User:<span>'+userName+'</span></p>');
-    div.append('<p>'+ _.escape(data.text) +'</p>');
-    return div;
-  }
-
-  function appendNewMessages(messages) {
-    var frag = $(document.createDocumentFragment());
-
-    for(var i = 0; i < messages.length; i++) {
-      if(_.indexOf(cachedMessages, messages[i].createdAt) > -1) {
-        break;
+    var appendChatRoom = function(message) {
+      var roomname = _.escape(message.get('roomname'));
+      if( _.indexOf(this.chatRooms,roomname) === -1 ) {
+        this.chatRooms.push(roomname);
+        this.$chatRoomSelect.append('<option value="'+ roomname +'">'+roomname+'</option');
       }
-      cachedMessages.push(messages[i].createdAt);
-      if( messages[i].roomname === $chatRoomSelector.val() ) {
-        frag.append(buildMessage(messages[i]));
-      }
-    }
-
-    $messageContainer.prepend(frag);
-  }
-
-  function buildChatRooms(messages) {
-    _.each(messages, function(message) {
-      var roomname = _.escape(message.roomname);
-      if( _.indexOf(chatRooms,roomname) === -1 ) {
-        chatRooms.push(roomname);
-        $chatRoomSelector.append('<option value="'+ roomname +'">'+roomname+'</option');
-      }
-    });
-  }
-
-  function switchRooms() {
-    cachedMessages = [];
-    $newChatRoom.val(this.value);
-    fetch();
-  }
-
-  function messageParse() {
-
-    var userName = $userName.val();
-    var text = $message.val();
-    var roomName = $newChatRoom.val();
-
-    if( !userName || !text || !roomName) {
-      return;
-    }
-
-    var message = {
-      username: userName,
-      text: text,
-      roomname: roomName
     };
 
-    $message.val('');
+    this.collection.forEach(appendChatRoom,this);
 
-    send(message);
+  },
+
+  startSpinner: function() {
+    this.$spinner.show();
+  },
+
+  stopSpinner: function() {
+    this.$spinner.fadeOut('fast');
   }
 
-  function addFriend() {
-    var userName = $(this).data('username');
+});
 
-    if(friends[userName]) {
-      friends[userName] = false;
+var MessageView = Backbone.View.extend({
+
+  template: _.template('<div class="chat" data-id="<%- objectId %>"> \
+                       <div class="user-name" data-username="<%- username %>"><%- username %></div> \
+                       <div class="text"><%- text %></div> \
+                       </div>'),
+
+  render: function() {
+    this.$el.html(this.template(this.model.attributes));
+    return this.$el;
+  }
+
+});
+
+var MessagesView = Backbone.View.extend({
+
+  initialize: function() {
+    this.collection.on('sync', this.render, this);
+    this.friends = {};
+  },
+
+  events: {
+    'click .user-name': 'addFriend'
+  },
+
+  addFriend: function(e) {
+    var userName = $(e.target).data('username');
+
+    if(this.friends[userName]) {
+      this.friends[userName] = false;
     } else {
-      friends[userName] = true;
+      this.friends[userName] = true;
     }
 
-    $('.user-name[data-username="'+userName+'"]').each(function(i,el) {
-      $(el).toggleClass('friend',friends[userName]);
-    });
+    this.$('.user-name[data-username="'+userName+'"]').each(function(i,el) {
+      $(el).toggleClass('friend',this.friends[userName]);
+    }.bind(this));
+  },
+
+  render: function() {
+    this.collection.forEach(this.renderMessage, this);
+  },
+
+  renderMessage: function(message) {
+    var $frag = $(document.createDocumentFragment());
+
+    if( message.get('roomname') === $chatRoomSelect.val() && !onscreenMessages[message.get('objectId')] ) {
+      var messageView = new MessageView({model: message});
+      $frag.prepend(messageView.render());
+      onscreenMessages[message.get('objectId')] = true;
+    }
+
+    this.$el.prepend($frag);
   }
-
-  function init(params) {
-    $messageContainer = params.container;
-
-    $messageContainer.on('click','.user-name',addFriend);
-
-    $messageForm.on('submit',function(e) {
-      e.preventDefault();
-    });
-
-    $sendMessage.on('click',messageParse);
-    $chatRoomSelector.on('change',switchRooms);
-
-    fetch();
-  };
-
-  function send(message) {
-
-    $spinner.show();
-
-    $.ajax({
-      url: server,
-      type: 'POST',
-      data: JSON.stringify(message),
-      contentType: 'application/json',
-      success: function (data) {
-        clearInterval(timer);
-        fetch();
-        console.log('chatterbox: Message sent');
-      },
-      error: function (data) {
-        console.error('chatterbox: Failed to send message');
-      }
-    });
-  };
-
-  function fetch() {
-    $.ajax({
-      url: server,
-      type: 'GET',
-      data: {order: '-createdAt'},
-      contentType: 'application/json',
-      success: function(data) {
-        clearInterval(timer);
-        timer = setInterval(fetch,5000);
-        displayMessages(data);
-        $spinner.fadeOut();
-      },
-      error: function (data) {
-        console.error('chatterbox: Failed to fetch message');
-      }
-    });
-  };
-
-  function displayMessages(data) {
-
-    buildChatRooms(data.results);
-
-    if(!cachedMessages.length) {
-      initFeed(data.results);
-      return;
-    }
-
-    if( JSON.stringify(data.results[0]) !== JSON.stringify(cachedMessages[0]) ) {
-      appendNewMessages(data.results);
-    }
-
-  };
-
-  app = {
-    server: server,
-    init: init,
-    send: send,
-    fetch: fetch,
-    displayMessages: displayMessages
-  };
 
 });
