@@ -37,10 +37,13 @@
     <script>
 
       $(function() {
+        
         var messages = new Messages();
         messages.loadMsgs();
+        
         var formView = new FormView({el: '#main', collection: messages})
         var messagesView = new MessagesView({el: '#feed', collection: messages});
+
         setInterval( messages.loadMsgs.bind(messages), 1000 );
       });
 

@@ -1,7 +1,4 @@
-var $chatRoomSelect = $('#chat-room-select');
-var $newChatRoom = $('#new-chatroom');
-var $feed = $('#feed');
-var onscreenMessages = {};
+var events = _.extend({}, Backbone.Events);
 
 var Message = Backbone.Model.extend({
   url: 'https://api.parse.com/1/classes/chatterbox/',
@@ -34,6 +31,7 @@ var Messages = Backbone.Collection.extend({
 var FormView = Backbone.View.extend({
 
   initialize: function(){
+
     this.collection.on('sync', this.stopSpinner, this);
     this.collection.on('sync', this.buildChatRooms, this);
 
@@ -51,10 +49,12 @@ var FormView = Backbone.View.extend({
   },
 
   switchRooms: function(e) {
-    onscreenMessages = {};
-    $feed.html('');
 
-    $newChatRoom.val(e.target.value);
+    var roomName = e.target.value;
+
+    events.trigger('switchRooms',roomName);
+
+    this.$roomName.val(roomName);
 
     this.collection.loadMsgs();
   },
@@ -113,13 +113,28 @@ var MessageView = Backbone.View.extend({
 
 var MessagesView = Backbone.View.extend({
 
-  initialize: function() {
-    this.collection.on('sync', this.render, this);
+  initialize: function(options) {
     this.friends = {};
+    this.onscreenMessages = {};
+    this.currentRoom = 'lobby';
+
+    this.collection.on('sync', this.render, this);
+
+    events.on('switchRooms',this.clearFeed,this);
+    events.on('switchRooms',this.setCurrentRoom,this);
   },
 
   events: {
     'click .user-name': 'addFriend'
+  },
+
+  clearFeed: function() {
+    this.onscreenMessages = {};
+    this.$el.html('');
+  },
+
+  setCurrentRoom: function(roomName) {
+    this.currentRoom = roomName;
   },
 
   addFriend: function(e) {
@@ -143,10 +158,10 @@ var MessagesView = Backbone.View.extend({
   renderMessage: function(message) {
     var $frag = $(document.createDocumentFragment());
 
-    if( message.get('roomname') === $chatRoomSelect.val() && !onscreenMessages[message.get('objectId')] ) {
+    if( message.get('roomname') === this.currentRoom && !this.onscreenMessages[message.get('objectId')] ) {
       var messageView = new MessageView({model: message});
       $frag.prepend(messageView.render());
-      onscreenMessages[message.get('objectId')] = true;
+      this.onscreenMessages[message.get('objectId')] = true;
     }
 
     this.$el.prepend($frag);
