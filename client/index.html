@@ -9,18 +9,27 @@
     <div id="main">
       <h1>chatterbox</h1>
       <form action="#" id="message-form">
-        <select name="chat" id="chat-room-select">
-        </select>
 
-        <label for="user-name">User Name</label>
-        <input type="text" id="user-name">
+        <div class="input-wrap">
+          <span>Change Chatroom:</span><select name="chat" id="chat-room-select"></select>
+        </div>
 
-        <label for="message">Message</label>
-        <input type="text" id="message">
+        <div class="input-wrap">
+          <label for="user-name">User Name:</label>
+          <input type="text" id="user-name">
+        </div>
+
+        <div class="input-wrap">
+          <label for="message">Message:</label>
+          <input type="text" id="message">
+        </div>
+
+        <div class="input-wrap">
+          <label for="new-chatroom">Current Chatroom:</label>
+          <input type="text" id="new-chatroom" value="lobby">
+        </div>
+        
         <button id="send-message">Send Message</button>
-
-        <label for="new-chatroom">Current Chatroom</label>
-        <input type="text" id="new-chatroom" value="lobby">
 
         <img class="spinner" src="images/spiffygif_46x46.gif" alt="">
       </form>

@@ -1,62 +1,77 @@
 body {
-    background: #eee;
-    text-align: center;
-    padding: 0 25px;
-    font-family: arial, sans-serif;
+  background: #eee;
+  text-align: center;
+  padding: 0 25px;
+  font-family: arial, sans-serif;
 }
 
 #main {
-    width: 500px;
-    margin: auto;
-    text-align: left;
-    background: white;
-    padding: 50px 60px;
-    border: solid #ddd;
-    border-width: 0 1px 1px 1px;
+  width: 500px;
+  margin: auto;
+  text-align: left;
+  background: white;
+  padding: 50px 60px;
+  border: solid #ddd;
+  border-width: 0 1px 1px 1px;
 }
 
 #main h1 {
-    margin-top: 0;
-    font-size: 35px;
-    margin-bottom: 5px;
-    padding: 5px;
+  margin-top: 0;
+  font-size: 35px;
+  margin-bottom: 5px;
 }
 
 #main h1 span {
-    font-style:italic;
+  font-style:italic;
 }
 
 #main ul {
-    padding-left: 20px;
+  padding-left: 20px;
 }
 
 #main .error {
-    border: 1px solid red;
-    background: #FDEFF0;
-    padding: 20px;
+  border: 1px solid red;
+  background: #FDEFF0;
+  padding: 20px;
 }
 
 #main .success {
-    margin-top: 25px;
+  margin-top: 25px;
 }
 
 #main .success code {
-    font-size: 12px;
-    color: green;
-    line-height: 13px;
+  font-size: 12px;
+  color: green;
+  line-height: 13px;
 }
 
 form {
-    padding: 20px;
-    padding-left: 0;
-    margin-bottom: 20px;
+  margin-bottom: 20px;
+  overflow: auto;
 }
 
-form input[type=text] {
-    margin-right: 10px;
-    width: 70%;
-    font-size: 12px;
-    padding: 5px;
+input[type=text] {
+  width: 50%;
+  float: right;
+  font-size: 12px;
+  padding: 5px;
+}
+
+label {
+  float: left;
+}
+
+#chat-room-select {
+  float: right;
+}
+
+.input-wrap {
+  overflow: auto;
+  margin: 0 0 10px 0;
+}
+
+#send-message {
+  float: right;
 }
 
 .spinner {
@@ -64,19 +79,19 @@ form input[type=text] {
 }
 
 .chat {
-    padding: 5px;
-    margin-bottom: 5px;
-    background-color: #eee;
+  padding: 5px;
+  margin-bottom: 5px;
+  background-color: #eee;
 }
 
 .chat .username {
-    font-weight: 800;
+  font-weight: 800;
 }
 
 .chat:hover {
-    background-color: #ddd;
+  background-color: #ddd;
 }
 
 .friend {
-    font-weight: bold;
+  font-weight: bold;
 }

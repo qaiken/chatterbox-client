@@ -17,7 +17,7 @@ var Messages = Backbone.Collection.extend({
     this.fetch({data: { order: '-createdAt' }});
   },
 
-  parse: function(response, options){
+  parse: function(response, options) {
     var results = [];
     for( var i = response.results.length-1; i >= 0; i-- ){
       results.push(response.results[i]);
@@ -27,11 +27,9 @@ var Messages = Backbone.Collection.extend({
 
 });
 
-
 var FormView = Backbone.View.extend({
 
-  initialize: function(){
-
+  initialize: function() {
     this.collection.on('sync', this.stopSpinner, this);
     this.collection.on('sync', this.buildChatRooms, this);
 
@@ -49,7 +47,6 @@ var FormView = Backbone.View.extend({
   },
 
   switchRooms: function(e) {
-
     var roomName = e.target.value;
 
     events.trigger('switchRooms',roomName);
